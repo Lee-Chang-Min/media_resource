@@ -12,8 +12,8 @@ router = APIRouter()
 
 
 # Company 등록
-@router.post("/", response_model=CompanyBase)
-async def create_company(
+@router.post("/company", response_model=CompanyBase)
+async def create_company_api(
     company_in: CompanyCreate,
     # background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db)
@@ -39,7 +39,7 @@ async def create_company(
     
     return db_company
 
-# Company 정보 수정 (플랜 에 대한 정보 수정을 위하여 API 필요요)
+# Company 정보 수정 (유료 무료 플랜에 대한 정보 수정을 위하여 API 필요)
 # @router.put("/{company_id}", response_model=Company)
 # async def update_company(
 #     company_id: int,
