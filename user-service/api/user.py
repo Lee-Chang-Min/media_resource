@@ -4,12 +4,13 @@ from datetime import timedelta
 from core.config import settings
 from core.db.base import get_db
 from core.db.models import User
-from crud.user import auth_user, check_email_exists, create_user_db, get_user_by_id, delete_user_db, get_users_db
-
 from core.db.schemas import Token
-from core.auth import create_access_token, create_refresh_token
 from core.db.schemas import UserBase, UserCreate, LoginRequest, UserUpdate
+
 from api.deps import get_current_user
+from crud.user import auth_user, check_email_exists, create_user_db, get_user_by_id, update_user_db, delete_user_db, get_users_db
+from core.auth import create_access_token, create_refresh_token, verify_refresh_token
+from crud.token import token_revoke
 
 router = APIRouter()
 
@@ -28,7 +29,7 @@ async def login( login_request: LoginRequest, db: AsyncSession = Depends(get_db)
         
         access_token = create_access_token(
             data = {
-                "sub": f"{user.id}",
+                "sub": str(user.id),
                 "company_id": user.company_id,
                 "is_admin": user.is_admin,
             },
@@ -37,13 +38,16 @@ async def login( login_request: LoginRequest, db: AsyncSession = Depends(get_db)
         
         refresh_token = await create_refresh_token(
             db = db,
-            user_id = user.id,
+            user_id = str(user.id),
+            company_id = user.company_id,
+            is_admin = user.is_admin,
             expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
         )
     
         return {
             "access_token": access_token,
-            "refresh_token": refresh_token
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
         }
     
     except Exception as e:
@@ -142,8 +146,13 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    
+    # 0일 경우 자신의 정보를 수정하는 것으로 간주
+    if user_id == 0:
+        user_id = current_user.id
+
     # 수정할 사용자 조회
-    update_user = await get_user_by_id(db, user_id)
+    update_user = await get_user_by_id(db, int(user_id))
 
     if not update_user:
         raise HTTPException(
@@ -156,14 +165,23 @@ async def update_user(
         current_user.is_admin and 
         current_user.company_id == update_user.company_id
     ):
-        # 사용자 정보 업데이트
-        update_user.is_admin = user_in.is_admin
-        update_user.name = user_in.name
-        update_user.phoneNumber = user_in.phoneNumber
+        
+        # 관리자 권한이 없는 사용자가 관리자 권한을 수정하려고 할 경우 예외 발생
+        if(current_user.is_admin is False and user_in.is_admin is True):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="권한이 없으므로 관리자 권한을 수정할 수 없습니다"
+            )
 
-        db.add(update_user)
-        await db.commit()
-        return update_user
+        success = await update_user_db(db, update_user.id, user_in)
+
+        if success:
+            return {"message": "사용자 정보가 성공적으로 수정되었습니다"}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="사용자 정보 수정 중 오류가 발생했습니다"
+            )
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -179,11 +197,14 @@ async def delete_user(
     current_user: User = Depends(get_current_user)
 ):
 
+    # 0일 경우 자신의 정보를 삭제하는 것으로 간주
     if user_id == 0:
         user_id = current_user.id
     
-    delete_user = await get_user_by_id(db, int(user_id))
+    delete_user = await get_user_by_id(db, int(user_id)) # current_user.id 가 STRING 형이므로 형변환 필요
+    #delete_user.id 는 int 
 
+    # 삭제할 사용자 정보 조회
     if not delete_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -212,21 +233,35 @@ async def delete_user(
         )
 
 
+#refresh token 검증 후 access token 발급
+@router.post("/token/access")
+async def token(
+    refresh_token: str ,
+    db: AsyncSession = Depends(get_db)
+):
+    # 1) Refresh Token 검증
+    result = await verify_refresh_token(db, refresh_token)
 
-# @router.post("/token/refresh")
-# async def refresh_token(
-#     refresh_token: str = Depends(oauth2_refresh_scheme),
-#     db: AsyncSession = Depends(get_db)
-# ):
-#     # 1) Refresh Token 검증
-#     token_obj = await verify_refresh_token(db, refresh_token)
+    # 2) 기존 refresh token 무효화
+    await token_revoke(db, refresh_token)
 
-#     # 2) (선택) 기존 Refresh Token 무효화
-#     await crud_refresh.revoke(db, token_obj)
+    # 3) 새 Access/Refresh Token 발급
+    if (result):
+        access_token = create_access_token(
+            data = {
+                "sub": str(result["sub"]),
+                "company_id": result["company_id"],
+                "is_admin": result["is_admin"],
+            },
+            expires_delta=timedelta(days=settings.ACCESS_TOKEN_EXPIRE_DAYS)
+        )
+        
+        refresh_token = await create_refresh_token(
+            db = db,
+            user_id = str(result["sub"]),
+            company_id = result["company_id"],
+            is_admin = result["is_admin"],
+            expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        )
 
-#     # 3) 새 Access/Refresh Token 발급
-#     access = create_access_token({"sub": str(token_obj.user_id)})
-#     new_refresh = create_refresh_token(token_obj.user_id)
-#     await crud_refresh.create(db, token_obj.user_id, new_refresh)
-
-#     return {"access_token": access, "refresh_token": new_refresh, "token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}

@@ -23,7 +23,7 @@ class CompanyUpdate(BaseModel):
     premium_expiry_date: Optional[datetime] = None
 
 class CompanyInDB(CompanyBase):
-    id: str
+    id: int
     premium_expiry_date: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

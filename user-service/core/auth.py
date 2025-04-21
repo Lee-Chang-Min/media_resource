@@ -13,7 +13,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose.exceptions import JWTError
 
-from crud.token import create_refresh_token as db_create_refresh_token
+from crud.token import create_refresh_token, get_by_refresh_token
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -40,7 +40,6 @@ def create_access_token(
     액세스 토큰 생성
     """
     to_encode = data.copy()
-    print(to_encode)
     expire = datetime.now(tz=timezone.utc) + expires_delta
  
     to_encode.update({"exp": expire})
@@ -51,6 +50,8 @@ def create_access_token(
 async def create_refresh_token(
     db: AsyncSession,
     user_id: str,
+    company_id: str,
+    is_admin: bool,
     expires_delta: Optional[timedelta]
 ) -> str:
     """
@@ -60,12 +61,12 @@ async def create_refresh_token(
     expire = datetime.now(tz=timezone.utc) + (
         expires_delta or timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     )
-    to_encode = {"sub": user_id, "exp": expire}
+    to_encode = {"sub": user_id, "company_id": company_id, "is_admin": is_admin, "exp": expire}
 
     refresh_token = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
     #DB에 저장
-    await db_create_refresh_token(
+    await create_refresh_token(
         db = db,
         token = refresh_token,
         user_id = user_id,
@@ -88,27 +89,27 @@ async def verify_access_token(token: str = Depends(OAuth2PasswordBearer)) -> dic
             detail="Invalid or expired access token",
         )
     
-# async def verify_refresh_token(
-#     db: AsyncSession,
-#     token: str
-# ) -> RefreshToken:
-#     try:
-#         payload = jwt.decode(
-#             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
-#         )
-#         user_id = payload.get("sub")
-#     except (JWTError, TypeError, ValueError):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid or malformed refresh token",
-#         )
+async def verify_refresh_token(
+    db: AsyncSession,
+    refresh_token: str
+) -> dict:
+    try:
+        payload = jwt.decode(
+            refresh_token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
+    except (JWTError, TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or malformed refresh token",
+        )
 
-#     # DB에 저장된 토큰 객체 조회
-#     token_obj = await crud_refresh.get_by_token(db, token)
-#     if not token_obj or not token_obj.is_active():
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Refresh token is revoked or expired",
-#         )
-#     return token_obj
+    # DB에 저장된 토큰 객체 조회
+    refresh_token_db = await get_by_refresh_token(db, payload["sub"])
+
+    if not refresh_token_db or not refresh_token_db.is_active() or (refresh_token_db.token != refresh_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token is revoked or expired",
+        )
+    return payload
 

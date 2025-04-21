@@ -2,7 +2,7 @@
 from fastapi import HTTPException, status, Depends
 from core.db.models import User
 from core.db.base import get_db
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from core.config import settings
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +26,7 @@ async def get_current_user(
     """
     1) Authorization 헤더에서 토큰을 꺼내고,
     2) 토큰 유효성을 검증한 뒤,
-    3) payload의 'sub' 값을 user_id로 사용해 DB에서 사용자 조회하여 반환합니다.
+    3) payload의 값 파싱싱
     """
     try:
         payload = await verify_access_token(access_token)
@@ -51,6 +51,12 @@ async def get_current_user(
         )
         
         return user
+    
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired"
+        )
     
     except JWTError:
         raise HTTPException(

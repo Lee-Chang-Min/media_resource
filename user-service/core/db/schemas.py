@@ -8,7 +8,7 @@ class UserBase(BaseModel):
     is_admin: bool = False
 
 class UserCreate(UserBase):
-    company_id: str
+    company_id: int
     name: str
     phoneNumber: str
 
@@ -21,17 +21,14 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    company_id: Optional[str] = None
     is_admin: Optional[bool] = None
-    password: Optional[str] = None
     name: Optional[str] = None
     phoneNumber: Optional[str] = None
 
 
 class UserInDB(UserBase):
-    id: str
-    company_id: str
-    is_active: bool
+    id: int
+    company_id: int
     created_at: datetime
     updated_at: datetime
 
@@ -41,9 +38,9 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class TokenPayload(BaseModel):
-    sub: str
+    sub: str    
     exp: int
-    company_id: str
+    company_id: int
     is_admin: bool 
 
 class LoginRequest(BaseModel):

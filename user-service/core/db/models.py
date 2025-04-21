@@ -11,10 +11,10 @@ def utc_now():
 class User(Base):
     __tablename__ = "user"
     
-    id = Column(String, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, nullable=False)
     password = Column(String, nullable=False)
-    company_id = Column(String, nullable=False)
+    company_id = Column(Integer, nullable=False)
     is_admin = Column(Boolean, default=False)
 
     name = Column(String, nullable=False)

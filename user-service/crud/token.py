@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.models import RefreshToken
@@ -27,13 +27,28 @@ async def create_refresh_token(
         raise e
 
 # DB에 저장된 토큰 객체 조회
-async def get_by_token(db: AsyncSession, token: str) -> RefreshToken | None:
+async def get_by_refresh_token(db: AsyncSession, user_id: int) -> RefreshToken | None:
     try:
-        result = await db.execute(select(RefreshToken).where(RefreshToken.token == token))
+        result = await db.execute(
+            select(RefreshToken)
+            .where(RefreshToken.user_id == user_id)
+            .order_by(RefreshToken.created_at.desc())
+            .limit(1)
+        )
         return result.scalar_one_or_none()
     except Exception as e:
         raise e
 
-# 토큰 생성
-
+# refresh token 무효화
+async def token_revoke(db: AsyncSession, refresh_token: str):
+    try:
+        await db.execute(
+            update(RefreshToken)
+            .where(RefreshToken.token == refresh_token)
+            .values(revoked_at=datetime.now(timezone.utc))
+        )   
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise e
 

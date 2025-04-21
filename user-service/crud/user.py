@@ -3,7 +3,7 @@ from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import verify_password, get_password_hash
 from core.db.models import User as UserModel, RefreshToken
-
+from core.db.schemas import UserUpdate
 
 async def auth_user(db: AsyncSession, email: str, password: str):
     """사용자 로그인 함수"""
@@ -25,10 +25,26 @@ async def get_users_db(db: AsyncSession, company_id: int):
     result = await db.execute(select(UserModel).where(UserModel.company_id == company_id))
     return result.scalars().all()
 
-async def update_user_db(db: AsyncSession, user_id: int, company_id: int, is_admin: bool):
-    """사용자 업데이트"""
-    result = await db.execute(update(UserModel).where(UserModel.id == user_id).values(company_id=company_id, is_admin=is_admin))
-    return result.scalar_one_or_none()
+async def update_user_db(
+    db: AsyncSession,
+    db_user: UserModel,           # id 대신 이미 조회된 User 인스턴스를 받음
+    user_in: UserUpdate
+) -> UserModel:
+    """
+    이미 조회된 db_user에 대해서만 name, phone_number, is_admin를 덮어쓰고
+    커밋 후 갱신된 User 객체를 반환합니다.
+    """
+    if user_in.name is not None:
+        db_user.name = user_in.name
+    if user_in.phoneNumber is not None:
+        db_user.phoneNumber = user_in.phoneNumber
+    if user_in.is_admin is not None:
+        db_user.is_admin = user_in.is_admin
+
+
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
 
 async def delete_user_db(db: AsyncSession, user_id: int):
     """사용자 삭제"""
