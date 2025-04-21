@@ -22,12 +22,9 @@ class CompanyUpdate(BaseModel):
     premium: Optional[bool] = None
     premium_expiry_date: Optional[datetime] = None
 
-# class CompanyInDB(CompanyBase):
-#     id: int
-#     premium_expiry_date: Optional[datetime] = None
-#     created_at: datetime
-#     updated_at: datetime
-
-#     class Config:
-#         orm_mode = True
+class CompanyInDB(CompanyBase):
+    id: str
+    premium_expiry_date: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
 

@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
-from sqlalchemy import select
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import select, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import verify_password, get_password_hash
 from core.db.models import User as UserModel, RefreshToken
@@ -15,17 +15,25 @@ async def auth_user(db: AsyncSession, email: str, password: str):
     
     return user
 
-async def create_refresh_token_db(db: AsyncSession, token: str, user_id: int, expires_delta: timedelta):
-    """리프레시 토큰을 DB에 저장"""
-    new_refresh_token = RefreshToken(
-        token=token,
-        user_id=user_id,
-        expires_at=datetime.utcnow() + expires_delta
-    )
-    
-    db.add(new_refresh_token)
-    await db.commit()
-    return new_refresh_token
+async def get_user_by_id(db: AsyncSession, user_id: int):
+    """사용자 조회"""
+    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+    return result.scalar_one_or_none()
+
+async def get_users_db(db: AsyncSession, company_id: int):
+    """사용자 목록 조회"""
+    result = await db.execute(select(UserModel).where(UserModel.company_id == company_id))
+    return result.scalars().all()
+
+async def update_user_db(db: AsyncSession, user_id: int, company_id: int, is_admin: bool):
+    """사용자 업데이트"""
+    result = await db.execute(update(UserModel).where(UserModel.id == user_id).values(company_id=company_id, is_admin=is_admin))
+    return result.scalar_one_or_none()
+
+async def delete_user_db(db: AsyncSession, user_id: int):
+    """사용자 삭제"""
+    result = await db.execute(delete(UserModel).where(UserModel.id == user_id))
+    return result.scalar_one_or_none()
 
 async def check_email_exists(db: AsyncSession, email: str, company_id: int):
     """이메일 중복 체크"""
@@ -35,19 +43,23 @@ async def check_email_exists(db: AsyncSession, email: str, company_id: int):
             UserModel.company_id == company_id
         )
     )
+
     return result.scalar_one_or_none() is not None
 
-async def create_user_db(db: AsyncSession, email: str, password: str, company_id: int, is_admin: bool):
-    """새 사용자 생성"""
+async def create_user_db(db: AsyncSession, email: str, password: str, company_id: int, is_admin: bool, name: str, phoneNumber: str):
+    """사용자 생성"""
     hashed_password = get_password_hash(password)
     db_user = UserModel(
         email=email,
-        hashed_password=hashed_password,
+        password=hashed_password,
         company_id=company_id,
-        is_admin=is_admin
+        is_admin=is_admin,
+        name=name,
+        phoneNumber=phoneNumber
     )
     
     db.add(db_user)
     await db.commit()
     await db.refresh(db_user)
+
     return db_user

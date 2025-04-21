@@ -5,14 +5,20 @@ from contextlib import asynccontextmanager
 from core.config import settings
 from core.db.models import Base
 from core.db.base import engine
+from sqlalchemy import create_engine
 
 # from core.security import verify_password, get_password_hash, create_access_token, create_refresh_token
 from api.user import router as user_router
 
 # 데이터베이스 테이블 생성
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 애플리케이션 시작 시 실행
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield 
 
-app = FastAPI(title=settings.PROJECT_NAME)
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

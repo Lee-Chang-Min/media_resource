@@ -12,7 +12,7 @@ def utc_now():
 class Company(Base):
     __tablename__ = "company"
 
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    id = Column(String, primary_key=True, autoincrement=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     premium = Column(Boolean, default=False)
     premium_expiry_date = Column(DateTime(timezone=True), nullable=True)

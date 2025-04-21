@@ -11,15 +11,18 @@ def utc_now():
 class User(Base):
     __tablename__ = "user"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String)
-    password = Column(String)
-    company_id = Column(Integer)
+    id = Column(String, primary_key=True, autoincrement=True)
+    email = Column(String, nullable=False)
+    password = Column(String, nullable=False)
+    company_id = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
 
+    name = Column(String, nullable=False)
+    phoneNumber = Column(String, nullable=True)
+
     point = Column(Integer, default=0)
-    created_at = Column(DateTime, default=utc_now)
-    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 class RefreshToken(Base):
     __tablename__ = "refresh_token"
@@ -32,11 +35,11 @@ class RefreshToken(Base):
     user = relationship("User", backref="refresh_tokens")
 
     # 토큰 만료 시점
-    expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=utc_now)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
 
     # 토큰을 무효화했는지 여부 (ex: 로그아웃)
-    revoked_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime(timezone=True), nullable=True)
 
     def is_active(self) -> bool:
         return self.revoked_at is None and self.expires_at > utc_now()
