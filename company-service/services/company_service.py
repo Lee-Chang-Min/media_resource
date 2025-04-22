@@ -5,27 +5,6 @@ import asyncio
 
 from core.db.models import Company
 
-# async def register_company(
-#     company_in: CompanyCreate,
-#     db: AsyncSession,
-#     background_tasks: BackgroundTasks
-# ):
-#     existing = await company_crud.get_company_by_name(db, company_in.name)
-#     if existing:
-#         raise HTTPException(status_code=400, detail="이미 사용 중인 회사 이름입니다")
-
-#     company = await company_crud.create_company(db, company_in)
-
-#     background_tasks.add_task(
-#         create_admin_user,
-#         company_id=company.id,
-#         email=company_in.admin_email,
-#         password=company_in.admin_password
-#     )
-
-#     return company
-
-
 import asyncio
 from datetime import datetime, timezone
 from sqlalchemy.future import select

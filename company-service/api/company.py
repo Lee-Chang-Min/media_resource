@@ -2,12 +2,12 @@ import httpx
 from fastapi import status
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from core.db.schemas import CompanyBase, CompanyCreate, CompanyCreateResponse
+from core.db.schemas import CompanyCreate, CompanyCreateResponse, CompanyUpdate
 
 from core.db.base import get_db
 from core.dep import get_current_user
 from core.config import settings
-from crud.company import get_company, create_company, delete_company
+from crud.company import get_company, create_company, delete_company, update_company_db
 
 router = APIRouter()
 
@@ -86,31 +86,16 @@ async def create_company_api(
 
 
 # Company 정보 수정 (유료 무료 플랜에 대한 정보 수정을 위하여 API 필요)
-@router.put("/{company_id}", response_model=CompanyBase)
+@router.put("/")
 async def update_company(
-    company_id: int,
-    company_in: CompanyBase,
+    company_in: CompanyUpdate,
+    db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
 ):
     try:
-        # 회사 조회
-        db_company = await get_company(db, company_id)
-        if not db_company:
-            raise HTTPException(
-                status_code=404,
-                detail="회사를 찾을 수 없습니다"
-            )
-    
-        # 회사 소유자 확인 및 권한 확인
-        if db_company.id != current_user.company_id and current_user.is_admin is False:
-            raise HTTPException(    
-                status_code=403,
-                detail="회사 소유자가 아닙니다"
-            )
-
         # 회사 정보 수정
-        db_company = await update_company(db, company_in)
+        db_company = await update_company_db(db, int(current_user["company_id"]), company_in)
+
         return db_company
     
     except Exception as e:

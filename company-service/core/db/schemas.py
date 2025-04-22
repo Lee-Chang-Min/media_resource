@@ -30,9 +30,9 @@ class CompanyCreate(CompanyBase):
         return v
 
 class CompanyUpdate(BaseModel):
-    company_name: Optional[str] = None
     premium: Optional[bool] = None
-    premium_expiry_date: Optional[datetime] = None
+    premium_expiry_date: Optional[Literal[1, 3, 12]] = None
+
 
 class CompanyInDB(CompanyBase):
     id: int
