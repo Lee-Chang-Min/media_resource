@@ -26,7 +26,7 @@ async def get_current_user(
     """
     1) Authorization 헤더에서 토큰을 꺼내고,
     2) 토큰 유효성을 검증한 뒤,
-    3) payload의 값 파싱싱
+    3) payload의 값 파싱
     """
     try:
         payload = await verify_access_token(access_token)

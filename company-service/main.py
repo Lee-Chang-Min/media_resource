@@ -1,13 +1,16 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 import asyncio
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from api.company import router as company_router
 from core.config import settings
 from core.db.models import Base
 from core.db.base import engine
-# from services.company_service import check_premium_expiry
+from sqlalchemy.ext.asyncio import AsyncSession
+from services.company_service import check_plan_expiry
+from core.db.base import get_db
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -15,13 +18,17 @@ async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    # 정기적으로 프리미엄 만료 체크하는 태스크 시작
-    # task = asyncio.create_task(check_premium_expiry())
-    
-    yield
-    
-    # 종료 시 태스크 취소
-    # task.cancel()
+    # 2) 백그라운드 태스크 시작 (세션은 태스크 내부에서 열음)
+    task = asyncio.create_task(check_plan_expiry())
+
+    yield  # 앱이 살아있는 동안
+
+    # 3) 서버 종료 시 태스크 안전하게 취소
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        print("플랜 만료 체크 태스크 취소")
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
@@ -33,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API 라우터 포함
 app.include_router(company_router, prefix=settings.API_V1_STR) 
 
 if __name__ == "__main__":

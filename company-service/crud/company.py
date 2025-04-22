@@ -9,7 +9,7 @@ from core.db.models import Company
 from core.db.schemas import CompanyCreate, CompanyUpdate
 
 
-# 회사 이름으로 조회 (중복 체크)
+# 회사 이름으로 조회 
 async def get_company(db: AsyncSession, name: str) -> Optional[Company]:
     result = await db.execute(select(Company).where(Company.name == name))
 
@@ -37,7 +37,7 @@ async def create_company(db: AsyncSession, company_in: CompanyCreate) -> Company
         print(premium_expiry_date)
 
     db_company = Company(
-        name=company_in.name,
+        name=company_in.company_name,
         premium=company_in.premium,
         premium_expiry_date=premium_expiry_date
     )
@@ -48,3 +48,11 @@ async def create_company(db: AsyncSession, company_in: CompanyCreate) -> Company
 
     return db_company
 
+
+# 회사 삭제
+async def delete_company(db: AsyncSession, company_id: int) -> None:
+    company = await db.execute(select(Company).where(Company.id == company_id))
+    db_company = company.scalar_one_or_none()
+    if db_company:
+        await db.delete(db_company)
+        await db.commit()

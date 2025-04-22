@@ -9,8 +9,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     company_id: int
-    name: str
-    phoneNumber: str
+    name: Optional[str] = None
+    phoneNumber: Optional[str] = None
 
     @field_validator('phoneNumber')
     def validate_phone_number(cls, v):
@@ -23,7 +23,14 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     is_admin: Optional[bool] = None
     name: Optional[str] = None
-    phoneNumber: Optional[str] = None
+    phoneNumber: str
+
+    @field_validator('phoneNumber')
+    def validate_phone_number(cls, v):
+        pattern = r'^01[0-9]{8,9}$'  # 010XXXXXXXX 또는 01XXXXXXXXX 형식
+        if not re.match(pattern, v):
+            raise ValueError('전화번호는 01012341234 형식이어야 합니다')
+        return v
 
 
 class UserInDB(UserBase):
@@ -44,5 +51,6 @@ class TokenPayload(BaseModel):
     is_admin: bool 
 
 class LoginRequest(BaseModel):
+    company_name: str
     email: EmailStr
     password: str

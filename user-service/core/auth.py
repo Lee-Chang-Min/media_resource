@@ -13,7 +13,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose.exceptions import JWTError
 
-from crud.token import create_refresh_token, get_by_refresh_token
+from crud.token import create_refresh_token_db, get_by_refresh_token
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -66,10 +66,10 @@ async def create_refresh_token(
     refresh_token = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
     #DB에 저장
-    await create_refresh_token(
+    await create_refresh_token_db(
         db = db,
         token = refresh_token,
-        user_id = user_id,
+        user_id = int(user_id),
         expires_delta = expires_delta
     )
 
@@ -104,7 +104,7 @@ async def verify_refresh_token(
         )
 
     # DB에 저장된 토큰 객체 조회
-    refresh_token_db = await get_by_refresh_token(db, payload["sub"])
+    refresh_token_db = await get_by_refresh_token(db, int(payload["sub"]))
 
     if not refresh_token_db or not refresh_token_db.is_active() or (refresh_token_db.token != refresh_token):
         raise HTTPException(

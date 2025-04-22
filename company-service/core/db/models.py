@@ -1,8 +1,6 @@
 from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, timezone
-from sqlalchemy.orm import validates
-from dateutil.relativedelta import relativedelta
 
 Base = declarative_base()
 

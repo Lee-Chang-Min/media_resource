@@ -1,13 +1,33 @@
-from datetime import datetime, timedelta, timezone
-from sqlalchemy import select, delete, update
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import verify_password, get_password_hash
-from core.db.models import User as UserModel, RefreshToken
+from core.db.models import User as UserModel
 from core.db.schemas import UserUpdate
 
-async def auth_user(db: AsyncSession, email: str, password: str):
+from httpx import AsyncClient
+from fastapi import HTTPException, status
+from core.config import settings
+
+async def auth_user(db: AsyncSession, company_name: str, email: str, password: str):
     """사용자 로그인 함수"""
-    result = await db.execute(select(UserModel).where(UserModel.email == email))
+
+    # 회사 조회
+    async with AsyncClient() as client:
+        response = await client.get(f"{settings.COMPANY_SERVICE_URL}/api/v1/?company={company_name}")
+        if response.status_code != status.HTTP_200_OK:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"회사 서비스 호출 실패: {response.text}"
+            )
+
+        company_id = response.text.strip()
+        if company_id == "null":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="회사를 찾을 수 없습니다."
+            )
+        
+    result = await db.execute(select(UserModel).where(UserModel.email == email, UserModel.company_id == int(company_id)))
     user: UserModel | None = result.scalar_one_or_none()
     
     if not user or not verify_password(password, user.password):

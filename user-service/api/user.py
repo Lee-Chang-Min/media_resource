@@ -18,7 +18,7 @@ router = APIRouter()
 async def login( login_request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     try:
-        user = await auth_user(db, login_request.email, login_request.password)
+        user = await auth_user(db, login_request.company_name, login_request.email, login_request.password)
 
         if not user:
             raise HTTPException(
@@ -60,13 +60,7 @@ async def login( login_request: LoginRequest, db: AsyncSession = Depends(get_db)
 async def create_user(
     user_in: UserCreate,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_active_user)
 ):
-    # if not current_user.is_admin:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="관리자 권한이 필요합니다"
-    #     )
 
     # 이메일 중복 체크 (회사가 다르면 중복이 가능하나, 같은 회사일 경우 이메일 중복 불가.)
     if await check_email_exists(db, user_in.email, user_in.company_id):
@@ -91,19 +85,13 @@ async def create_user(
 # 로그아웃
 @router.post("/logout")
 async def logout(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):  
-    # from crud.token import invalidate_refresh_token
     
-    # # 리프레시 토큰 무효화
-    # success = await invalidate_refresh_token(db, refresh_token)
-    
-    # if not success:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail="유효하지 않은 토큰입니다"
-    #     )
-    
+    # 리프레시 토큰 무효화
+    await token_revoke(db, None, int(current_user.id))
+
     return {"message": "로그아웃 되었습니다"}
 
 
@@ -141,7 +129,7 @@ async def get_users(
 # User Update
 @router.put("/users/{user_id}")
 async def update_user(
-    user_id: str,
+    user_id: int,
     user_in: UserUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -160,7 +148,7 @@ async def update_user(
             detail="사용자를 찾을 수 없습니다"
         )
 
-    # 수정할 사용자 정보 조회 (admin 권한이 있거나 자신의 정보를 수정할 경우 가능)
+    # 수정할 사용자 정보 조회 (admin 권한이 있거나 자신의 정보를 수정할 경우 가능, 토큰에 담겨있는 userid가 본인 이 맞는지도 한번 더 확인인)
     if current_user.id == str(update_user.id) or (
         current_user.is_admin and 
         current_user.company_id == update_user.company_id
@@ -173,7 +161,7 @@ async def update_user(
                 detail="권한이 없으므로 관리자 권한을 수정할 수 없습니다"
             )
 
-        success = await update_user_db(db, update_user.id, user_in)
+        success = await update_user_db(db, update_user, user_in)
 
         if success:
             return {"message": "사용자 정보가 성공적으로 수정되었습니다"}
@@ -230,6 +218,19 @@ async def delete_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="이 작업을 수행할 권한이 없습니다"
+        )
+
+# 로그인된 사용자 확인
+@router.get("/auth")
+async def auth(
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        return current_user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"로그인인 확인 중 오류가 발생했습니다: {str(e)}"
         )
 
 

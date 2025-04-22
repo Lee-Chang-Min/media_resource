@@ -28,9 +28,9 @@ class Settings(BaseSettings):
             f"@{values['POSTGRES_SERVER']}:{values['POSTGRES_PORT']}/{values['POSTGRES_DB']}"
         )
         return dsn  
-    
-    # 인증 서비스 URL
-    USER_SERVICE_URL: str = "http://user-service:8000"
+
+    # COMPANY_SERVICE_URL: str = "http://company-service:8001"
+    COMPANY_SERVICE_URL: str = "http://localhost:8001"
 
     
     JWT_SECRET_KEY: str = "lcmlcm123456789"

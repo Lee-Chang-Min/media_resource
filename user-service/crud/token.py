@@ -6,7 +6,7 @@ from core.db.models import RefreshToken
 
 
 # DB RefreshToken 저장
-async def create_refresh_token(
+async def create_refresh_token_db(
     db: AsyncSession,
     token: str,
     user_id: int,
@@ -40,14 +40,23 @@ async def get_by_refresh_token(db: AsyncSession, user_id: int) -> RefreshToken |
         raise e
 
 # refresh token 무효화
-async def token_revoke(db: AsyncSession, refresh_token: str):
+async def token_revoke(db: AsyncSession, refresh_token: str = None, user_id: int = None):
     try:
-        await db.execute(
-            update(RefreshToken)
-            .where(RefreshToken.token == refresh_token)
-            .values(revoked_at=datetime.now(timezone.utc))
-        )   
+        if refresh_token:
+            await db.execute(
+                update(RefreshToken)
+                .where(RefreshToken.token == refresh_token)
+                .values(revoked_at=datetime.now(timezone.utc))
+            )   
+        elif user_id:
+            await db.execute(
+                update(RefreshToken)
+                .where(RefreshToken.user_id == user_id)
+                .values(revoked_at=datetime.now(timezone.utc))
+            )
+
         await db.commit()
+        
     except Exception as e:
         await db.rollback()
         raise e

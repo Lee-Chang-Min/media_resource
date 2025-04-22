@@ -30,7 +30,8 @@ class Settings(BaseSettings):
         return dsn  
     
     # 인증 서비스 URL
-    AUTH_SERVICE_URL: str = "http://auth-service:8000"
+    # USER_SERVICE_URL: str = "http://auth-service:8000"
+    USER_SERVICE_URL: str = "http://localhost:8000"
     
     # 플랜 기간 설정
     DEFAULT_PREMIUM_DAYS: int = 30
