@@ -1,5 +1,5 @@
 import httpx
-from fastapi import status
+from fastapi import status, Query
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.db.schemas import CompanyCreate, CompanyCreateResponse, CompanyUpdate
@@ -7,7 +7,7 @@ from core.db.schemas import CompanyCreate, CompanyCreateResponse, CompanyUpdate
 from core.db.base import get_db
 from core.dep import get_current_user
 from core.config import settings
-from crud.company import get_company, create_company, delete_company, update_company_db
+from crud.company import get_company, create_company, delete_company, update_company_db, get_company_plan_db
 
 router = APIRouter()
 
@@ -30,6 +30,24 @@ async def get_company_name(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"회사 이름 조회 중 오류가 발생했습니다: {str(e)}"
         )
+    
+#Company Plan 조회
+@router.get("/premium/{company_id}")
+async def get_company_plan(
+    company_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        result = await get_company_plan_db(db, company_id)
+        
+        return result.premium
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"회사 플랜 조회 중 오류가 발생했습니다: {str(e)}"
+        )
+
 
 # Company 등록 Router
 @router.post("/company", response_model=CompanyCreateResponse)
@@ -105,4 +123,4 @@ async def update_company(
         )
 
 
-# (회사 조회, 삭제 구현 생략)  
+# (회사 삭제 구현 생략)  

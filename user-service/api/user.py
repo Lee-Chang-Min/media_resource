@@ -1,3 +1,5 @@
+import asyncio
+from sqlalchemy.exc import OperationalError
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import timedelta
@@ -8,7 +10,7 @@ from core.db.schemas import Token
 from core.db.schemas import UserBase, UserCreate, LoginRequest, UserUpdate
 
 from api.deps import get_current_user
-from crud.user import auth_user, check_email_exists, create_user_db, get_user_by_id, update_user_db, delete_user_db, get_users_db
+from crud.user import auth_user, check_email_exists, create_user_db, get_user_by_id, update_user_db, delete_user_db, get_users_db, award_points_db
 from core.auth import create_access_token, create_refresh_token, verify_refresh_token
 from crud.token import token_revoke
 
@@ -266,3 +268,40 @@ async def token(
         )
 
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+# 포인트 부과
+@router.post("/points")
+async def award_points(
+    user_id: int,
+    points: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    사용자에게 포인트를 부여하는 API.
+    Video Service에서 호출할 때 JSON 바디로 user_id와 points를 전달.
+    """
+    try:
+        # award_points 내부에서 Pessimistic Lock & lock_timeout 설정이 적용됩니다.
+        await award_points_db(db, user_id, points)
+
+    except asyncio.TimeoutError:
+        # lock_timeout을 초과한 경우
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Lock timeout: 잠시 후 다시 시도해주세요"
+        )
+    except OperationalError as e:
+        # FOR UPDATE NOWAIT 실패 등 DB 관련 오류
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"DB lock error: {e.orig if hasattr(e, 'orig') else str(e)}"
+        )
+    except Exception as e:
+        # 기타 예외
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"포인트 부여 중 오류가 발생했습니다: {e}"
+        )
+
+    return {"msg": "포인트 부여 완료", "success": True}

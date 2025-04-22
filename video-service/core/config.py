@@ -30,7 +30,7 @@ class Settings(BaseSettings):
         return dsn  
 
     # COMPANY_SERVICE_URL: str = "http://company-service:8001"
-    # COMPANY_SERVICE_URL: str = "http://localhost:8001"
+    COMPANY_SERVICE_URL: str = "http://localhost:8001"
     USER_SERVICE_URL: str = "http://localhost:8000"
 
     

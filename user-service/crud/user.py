@@ -1,9 +1,8 @@
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import verify_password, get_password_hash
 from core.db.models import User as UserModel
 from core.db.schemas import UserUpdate
-
 from httpx import AsyncClient
 from fastapi import HTTPException, status
 from core.config import settings
@@ -99,3 +98,33 @@ async def create_user_db(db: AsyncSession, email: str, password: str, company_id
     await db.refresh(db_user)
 
     return db_user
+
+
+async def award_points_db(db: AsyncSession, user_id: int, points: int):
+    """
+    사용자에게 포인트를 부여하는 함수.
+    """
+    try:
+        # 락 타임아웃 설정 (50ms)
+        await db.execute(text("SET LOCAL lock_timeout = '50ms'"))
+        
+        # NOWAIT 옵션으로 즉시 락 시도
+        result = await db.execute(
+            select(UserModel)
+            .where(UserModel.id == user_id)
+            .with_for_update(nowait=True)
+        )
+        user = result.scalar_one_or_none()
+        if not user:
+            return None  # 유저가 없으면 None 반환
+        
+        # 실제 포인트 누적
+        user.point += points
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        
+        return user
+    except Exception as e:
+        await db.rollback()
+        raise e

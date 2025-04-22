@@ -15,6 +15,12 @@ async def get_company(db: AsyncSession, name: str) -> Optional[Company]:
 
     return result.scalar_one_or_none()
 
+# 회사 플랜 조회
+async def get_company_plan_db(db: AsyncSession, company_id: int) -> Optional[Company]:
+    result = await db.execute(select(Company).where(Company.id == company_id))
+
+    return result.scalar_one_or_none()
+
 # 회사 생성
 async def create_company(db: AsyncSession, company_in: CompanyCreate) -> Company:
 
