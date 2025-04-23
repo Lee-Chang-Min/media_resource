@@ -11,6 +11,11 @@ from crud.company import get_company, create_company, delete_company, update_com
 
 router = APIRouter()
 
+#health check
+@router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 #Company Name 조회
 @router.get("/")
 async def get_company_name(
@@ -38,7 +43,13 @@ async def get_company_plan(
     db: AsyncSession = Depends(get_db)
 ):
     try:
+
         result = await get_company_plan_db(db, company_id)
+        if result is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="회사 ID가 없습니다"
+            )
         
         return result.premium
     
@@ -50,7 +61,7 @@ async def get_company_plan(
 
 
 # Company 등록 Router
-@router.post("/company", response_model=CompanyCreateResponse)
+@router.post("/create", response_model=CompanyCreateResponse)
 async def create_company_api(
     company_in: CompanyCreate,
     db: AsyncSession = Depends(get_db)
@@ -78,7 +89,7 @@ async def create_company_api(
         }
 
         async with httpx.AsyncClient(base_url=settings.USER_SERVICE_URL) as client:
-            resp = await client.post("/api/v1/users", json=user_payload)
+            resp = await client.post("/v1/users", json=user_payload)
             if resp.status_code != status.HTTP_200_OK:
                 # 발급 실패 시 생성 했던 Company 삭제
                 await delete_company(db, db_company.id)
@@ -98,13 +109,13 @@ async def create_company_api(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"회사 생성 중 오류가 발생했습니다: {str(e)}"
+            detail=f"회사 생성 중 오류가 발생했습니다 > {str(e)}"
         )
 
 
 
 # Company 정보 수정 (유료 무료 플랜에 대한 정보 수정을 위하여 API 필요)
-@router.put("/")
+@router.put("/update")
 async def update_company(
     company_in: CompanyUpdate,
     db: AsyncSession = Depends(get_db),
@@ -119,7 +130,7 @@ async def update_company(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"회사 정보 수정 중 오류가 발생했습니다: {str(e)}"
+            detail=f"회사 정보 수정 중 오류가 발생했습니다 > {str(e)}"
         )
 
 

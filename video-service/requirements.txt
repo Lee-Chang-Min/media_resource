@@ -5,3 +5,6 @@ asyncpg
 pydantic
 httpx
 aiofiles
+python-dateutil
+pydantic-settings
+python-multipart

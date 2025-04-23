@@ -11,7 +11,7 @@ async def get_current_user(
     UserService의 /api/users/me (또는 /api/auth) 엔드포인트를 호출해서
     토큰 유효성 및 로그인된 사용자 정보를 가져옵니다.
     """
-    url = f"{settings.USER_SERVICE_URL}/api/v1/auth"
+    url = f"{settings.USER_SERVICE_URL}/v1/auth"
     headers = {"Authorization": authorization}
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers, timeout=1.0)

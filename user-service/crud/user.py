@@ -12,7 +12,7 @@ async def auth_user(db: AsyncSession, company_name: str, email: str, password: s
 
     # 회사 조회
     async with AsyncClient() as client:
-        response = await client.get(f"{settings.COMPANY_SERVICE_URL}/api/v1/?company={company_name}")
+        response = await client.get(f"{settings.COMPANY_SERVICE_URL}/v1/?company={company_name}")
         if response.status_code != status.HTTP_200_OK:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -67,8 +67,10 @@ async def update_user_db(
 
 async def delete_user_db(db: AsyncSession, user_id: int):
     """사용자 삭제"""
-    result = await db.execute(delete(UserModel).where(UserModel.id == user_id))
-    return result.scalar_one_or_none()
+    await db.execute(delete(UserModel).where(UserModel.id == user_id))
+    await db.commit()
+
+    return True
 
 async def check_email_exists(db: AsyncSession, email: str, company_id: int):
     """이메일 중복 체크"""

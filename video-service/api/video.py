@@ -19,6 +19,12 @@ from sqlalchemy.ext.asyncio import async_session
 
 router = APIRouter()
 
+#health check
+@router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+
 @router.post("/upload", response_model=Video)
 async def upload_video(
     title: str = Form(...),
@@ -80,7 +86,7 @@ async def delete_video(
         
         # [2] 기업 플랜 확인
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{settings.COMPANY_SERVICE_URL}/api/v1/premium/{current_user['company_id']}")
+            response = await client.get(f"{settings.COMPANY_SERVICE_URL}/v1/premium/{current_user['company_id']}")
             print(response.json())
             if response.status_code != 200:
                 raise HTTPException(
@@ -146,7 +152,7 @@ async def award_points(user_id: int, points: int):
     Video Service에서 호출할 때 BackgroundTasks로 등록할 포인트 적립 함수.
     User Service의 /points/award 엔드포인트를 호출합니다.
     """
-    url = f"{settings.USER_SERVICE_URL}/api/v1/points"
+    url = f"{settings.USER_SERVICE_URL}/v1/points"
     params = {"user_id": user_id, "points": points} 
 
     try:

@@ -16,6 +16,11 @@ from crud.token import token_revoke
 
 router = APIRouter()
 
+#health check
+@router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 @router.post("/login", response_model=Token)
 async def login( login_request: LoginRequest, db: AsyncSession = Depends(get_db)):
 
@@ -58,10 +63,11 @@ async def login( login_request: LoginRequest, db: AsyncSession = Depends(get_db)
             detail=f"로그인 중 오류가 발생했습니다: {str(e)}"
         )
 
-@router.post("/users", response_model=UserBase)
+@router.post("/create", response_model=UserBase)
 async def create_user(
     user_in: UserCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
 
     # 이메일 중복 체크 (회사가 다르면 중복이 가능하나, 같은 회사일 경우 이메일 중복 불가.)
@@ -69,6 +75,18 @@ async def create_user(
         raise HTTPException(
             status_code=400,
             detail="이메일이 이미 사용 중입니다"
+        )
+    
+    if current_user.is_admin is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="관리자 권한이 없습니다"
+        )
+    
+    if current_user.company_id != user_in.company_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="회사 권한이 없습니다"
         )
     
     # 초기 비밀번호는 이메일 주소와 동일하게 설정 (화면에서 최초 로그인 시 비밀번호 변경 API 호출)

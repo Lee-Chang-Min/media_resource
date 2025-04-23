@@ -7,11 +7,12 @@ load_dotenv()
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Company Service"
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/v1"
     PORT: int = 8001
 
     # 데이터베이스 설정
-    POSTGRES_SERVER: str = "localhost"
+    # POSTGRES_SERVER: str = "localhost"
+    POSTGRES_SERVER: str = "postgres"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "lumanlab"
@@ -30,8 +31,8 @@ class Settings(BaseSettings):
         return dsn  
     
     # 인증 서비스 URL
-    # USER_SERVICE_URL: str = "http://auth-service:8000"
-    USER_SERVICE_URL: str = "http://localhost:8000"
+    USER_SERVICE_URL: str = "http://user-service:8000"
+    # USER_SERVICE_URL: str = "http://localhost:8000"
     
     # 플랜 기간 설정
     DEFAULT_PREMIUM_DAYS: int = 30

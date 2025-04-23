@@ -6,3 +6,5 @@ pydantic
 email-validator
 httpx
 pydantic-settings
+python-dateutil
+pydantic-settings
