@@ -1,8 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 from sqlalchemy.future import select
-from typing import Optional, List
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from core.db.models import Company

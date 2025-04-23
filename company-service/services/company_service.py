@@ -1,15 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
 from sqlalchemy.future import select
 from datetime import datetime, timezone
-import asyncio
-
 from core.db.models import Company
-
-import asyncio
-from datetime import datetime, timezone
-from sqlalchemy.future import select
-from core.db.models import Company
-from core.db.base import async_session  # AsyncSession 생성용 sessionmaker
+from core.db.base import async_session 
 
 async def check_plan_expiry():
     """

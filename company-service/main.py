@@ -1,5 +1,5 @@
 import asyncio
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -7,9 +7,8 @@ from api.company import router as company_router
 from core.config import settings
 from core.db.models import Base
 from core.db.base import engine
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from services.company_service import check_plan_expiry
-from core.db.base import get_db
 
 
 @asynccontextmanager
@@ -30,7 +29,11 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         print("플랜 만료 체크 태스크 취소")
 
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+app = FastAPI(title=settings.PROJECT_NAME,
+              openapi_url="/v1/openapi.json",
+              root_path="/api/company",
+              lifespan=lifespan,
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,7 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(company_router, prefix=settings.API_V1_STR) 
+app.include_router(company_router, prefix=settings.API_V1_STR, tags=["company-service"]) 
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,8 +6,8 @@ from core.db.schemas import CompanyCreate, CompanyCreateResponse, CompanyUpdate
 
 from core.db.base import get_db
 from core.dep import get_current_user
-from core.config import settings
 from crud.company import get_company, create_company, delete_company, update_company_db, get_company_plan_db
+from core.config import settings
 
 router = APIRouter()
 
@@ -17,7 +17,16 @@ async def health_check():
     return {"status": "ok"}
 
 #Company Name 조회
-@router.get("/")
+@router.get(
+        "/",
+        summary="회사 이름 조회",
+        description="회사 이름으로 회사의 고유 ID를 조회합니다.",
+        response_model=int,
+        status_code=status.HTTP_200_OK,
+        responses={
+            500: {"description": "서버 에러 발생"}
+        }        
+)
 async def get_company_name(
     company: str,
     db: AsyncSession = Depends(get_db)
@@ -37,7 +46,17 @@ async def get_company_name(
         )
     
 #Company Plan 조회
-@router.get("/premium/{company_id}")
+@router.get(
+        "/premium/{company_id}",
+        summary="회사 플랜 조회",
+        description="회사 ID를 기반으로 회사의 플랜 정보를 조회합니다.",
+        response_model=bool,
+        status_code=status.HTTP_200_OK,
+        responses={
+            400: {"description": "회사 ID가 없습니다"},
+            500: {"description": "서버 에러 발생"}
+        }
+)
 async def get_company_plan(
     company_id: int,
     db: AsyncSession = Depends(get_db)
@@ -61,7 +80,18 @@ async def get_company_plan(
 
 
 # Company 등록 Router
-@router.post("/create", response_model=CompanyCreateResponse)
+@router.post(
+        "/create", 
+        summary="회사 생성 후 관리자 계정 리턴",
+        description="신규 회사를 등록하고, 관리자 계정을 유저 서비스에 생성 요청 합니다.",
+        response_model=CompanyCreateResponse,
+        status_code=status.HTTP_200_OK,
+        responses={
+            400: {"description": "이미 사용 중인 회사 이름입니다"},
+            500: {"description": "회사 생성 중 오류가 발생했습니다"},
+            502: {"description": "유저 서비스 호출 실패"}
+        }
+)
 async def create_company_api(
     company_in: CompanyCreate,
     db: AsyncSession = Depends(get_db)
@@ -115,7 +145,17 @@ async def create_company_api(
 
 
 # Company 정보 수정 (유료 무료 플랜에 대한 정보 수정을 위하여 API 필요)
-@router.put("/update")
+@router.put(
+        "/update",
+        summary="회사 정보 수정",
+        description="회사의 플랜 정보를 수정 합니다.",
+        response_model=None,
+        status_code=status.HTTP_200_OK,
+        responses={
+            500: {"description": "회사 정보 수정 중 오류가 발생했습니다"},
+            403: {"description": "관리자 권한이 없습니다"}
+        }
+)
 async def update_company(
     company_in: CompanyUpdate,
     db: AsyncSession = Depends(get_db),

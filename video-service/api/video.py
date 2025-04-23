@@ -14,13 +14,21 @@ from core.dep import get_current_user
 from core.utils.file_utils import save_upload_file
 from crud.video import create_video_db, get_video, delete_video_db
 
-from sqlalchemy import update
-from sqlalchemy.ext.asyncio import async_session
 
 router = APIRouter()
 
 #health check
-@router.get("/health")
+@router.get(
+        "/health",
+        summary="Video Service API 상태 확인",
+        description="""
+        Video 서비스의 현재 운영 상태를 확인합니다.
+        서비스가 정상적으로 응답 가능한 상태이면 'ok' 상태를 반환합니다.
+        """,
+        responses={
+        200: {"description": "서비스 정상 작동 중"},
+        }   
+)
 async def health_check():
     return {"status": "ok"}
 
@@ -91,7 +99,7 @@ async def delete_video(
             if response.status_code != 200:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="프리미엄 플랜 기업만 비디오 삭제 기능을 사용할 수 있습니다"
+                    detail="삭제 권한이 없습니다"
                 )
         plan = response.json()
 
