@@ -5,15 +5,15 @@
 [2-1]
 export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=postgres
-export POSTGRES_DB=lumanlab
+export POSTGRES_DB=test
 
 윈도우 일 경우 
 set POSTGRES_USER=postgres
 set POSTGRES_PASSWORD=postgres
-set POSTGRES_DB=lumanlab
+set POSTGRES_DB=test
 
-[3] docker stack deploy -c docker-compose.yml lumanlab
-    # docker stack rm lumanlab => 삭제 , docker volume rm lumanlab_postgres_data => 삭제
+[3] docker stack deploy -c docker-compose.yml test
+    # docker stack rm test => 삭제 , docker volume rm test_postgres_data => 삭제
 
 [4] docker service ls => 서비스 상태 확인
 

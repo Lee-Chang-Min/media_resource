@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     POSTGRES_SERVER: str = "postgres"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_DB: str = "lumanlab"
+    POSTGRES_DB: str = "test"
     POSTGRES_PORT: str = "5432"
     DATABASE_URL: Optional[str] = None
 

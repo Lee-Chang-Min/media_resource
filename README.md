@@ -11,21 +11,21 @@
 [2-1]
 export POSTGRES_USER=postgres
 export POSTGRES_PASSWORD=postgres
-export POSTGRES_DB=lumanlab
+export POSTGRES_DB=test
 
 윈도우 일 경우 
 set POSTGRES_USER=postgres
 set POSTGRES_PASSWORD=postgres
-set POSTGRES_DB=lumanlab
+set POSTGRES_DB=test
 
-[3] docker stack deploy -c docker-compose.yml lumanlab
-    # docker stack rm lumanlab => 삭제 , docker volume rm lumanlab_postgres_data => 삭제
+[3] docker stack deploy -c docker-compose.yml test
+    # docker stack rm test => 삭제 , docker volume rm test_postgres_data => 삭제
 
 [4] docker service ls => 서비스 상태 확인
 
 ```
 
-### 답변 사항
+### 나의 생각각
 
 <서버에서 직접 파일을 읽어 응답 하는 형식 과 S3 같은 스토리지 서비스의 URL로 전달 하는 방식의 장 단점>
 
@@ -41,11 +41,17 @@ set POSTGRES_DB=lumanlab
 
 선택 이유
 
-동시에 두 번 적립해도 한 트랜잭션만 커밋되므로 포인트 합계가 정확하다.
+- 동시에 두 번 적립해도 한 트랜잭션만 커밋되므로 포인트 합계가 정확하다.
+- NOWAIT + lock_timeout → 실패한 요청은 즉시 클라이언트 재시도로 전가. 대량 이벤트(예: 동일 유저로 초당 수십 콜)에서도 DB 커넥션이 락 대기로 묶이지 않는다.
+- 행 단위 잠금이라 범위가 좁다. 다른 유저 포인트 적립은 전혀 막지 않는다.
 
-NOWAIT + lock_timeout 조합 “절대 기다리지 않는다”→ 실패한 요청은 즉시 클라이언트 재시도로 전가. 대량 이벤트(예: 동일 유저로 초당 수십 콜)에서도 DB 커넥션이 락 대기로 묶이지 않는다.
+잠재적 한계
+- 현재는 락 실패시 재시도 로직 X
+- DB 락 의존도 높음 -> 트래픽이 급증하면 충돌 빈번하게 발생
 
-행 단위 잠금이라 범위가 좁다. 다른 유저 포인트 적립은 전혀 막지 않는다.
+고도화 아이디어
+- Redis 사용 전략 
+- 이벤트 큐/비동기 적립 (카프카, 래빗MQ 등)
 
 ### ERD
 
